@@ -1,0 +1,31 @@
+[project]
+name = "ppt-analyse"
+version = "0.1.0"
+description = "PPT 分析 Agent Skill - 帮助大学生学习课程"
+authors = [{ name = "ppt-analyse" }]
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "python-pptx>=1.0.0",
+    "PyMuPDF>=1.24.0",
+    "openai>=1.55.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0",
+    "pillow>=11.0.0",
+    "mcp>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "httpx>=0.28.0",
+]
+
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎓 AI 教授 - PPT 互动课堂</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="bg-canvas">
+  <img src="/static/images/1.png" alt="" class="bg-image">
+  <div class="orb"></div><div class="orb"></div><div class="orb"></div><div class="orb"></div>
+  <div class="grid"></div>
+</div>
+
+<div class="app-container">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo"><img src="/static/images/2.png" alt="AI教授" class="avatar-img"></div>
+      <div class="title-group">
+        <h1>AI 教授</h1>
+        <div class="subtitle">PPT 互动课堂</div>
+      </div>
+    </div>
+    <div class="upload-area" id="uploadArea">
+      <span class="upload-icon">📤</span>
+      <p>上传 PPT 或 PDF 课件</p>
+      <div class="hint">支持 .pptx 和 .pdf 格式</div>
+      <input type="file" id="fileInput" accept=".pptx,.pdf">
+    </div>
+    <div class="file-info" id="fileInfo">
+      <span class="file-icon">📄</span>
+      <div class="file-details">
+        <div class="file-name" id="fileName">课件.pptx</div>
+        <div class="file-status" id="fileStatus">✅ 已加载</div>
+      </div>
+      <button class="remove-file" id="removeFile">✕</button>
+    </div>
+    <div class="controls" id="controls">
+      <div class="progress-label">
+        <span>学习进度</span>
+        <span id="progressText">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="nav-buttons">
+        <button id="prevBtn" disabled>◀ 上一页</button>
+        <button id="nextBtn" class="primary">下一页 ▶</button>
+      </div>
+    </div>
+    <div class="quick-actions" id="quickActions">
+      <button class="action-btn" id="notesBtn"><span class="icon">📝</span> 生成课程笔记</button>
+      <button class="action-btn" id="quizBtn"><span class="icon">✏️</span> 生成练习题</button>
+      <button class="action-btn" id="exportBtn"><span class="icon">📄</span> 导出 PDF 报告</button>
+    </div>
+  </aside>
+
+  <main class="chat-area">
+    <div class="chat-header">
+      <div class="header-info">
+        <button class="mobile-menu-btn" id="menuBtn">☰</button>
+        <div class="avatar"><img src="/static/images/2.png" alt="AI教授" class="avatar-img"></div>
+        <div>
+          <div class="name-title">AI 教授</div>
+          <div class="status-text" id="headerStatus">上传课件开始上课 <span class="highlight">📤</span></div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="clearBtn">🗑️ 清空</button>
+      </div>
+    </div>
+
+    <div class="messages" id="messages">
+      <div class="welcome-message" id="welcomeMessage">
+        <div class="welcome-icon"><img src="/static/images/2.png" alt="AI教授" class="welcome-img"></div>
+        <h2>欢迎来到 AI 互动课堂</h2>
+        <p>我是你的 AI 教授，上传一份 PPT 课件，我会像大学教授一样带你一步步学习课程内容，随时回答你的问题！</p>
+        <div class="steps">
+          <div class="step"><div class="step-num">1</div><div class="step-text">上传课件</div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-text">逐页学习</div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-text">提问互动</div></div>
+          <div class="step"><div class="step-num">4</div><div class="step-text">巩固练习</div></div>
+        </div>
+      </div>
+      <div class="typing-indicator" id="typingIndicator">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-wrapper">
+        <textarea id="chatInput" rows="1" placeholder="输入你的问题..." disabled></textarea>
+        <button class="send-btn" id="sendBtn" disabled>➤</button>
+      </div>
+      <div class="input-hint" id="inputHint">上传课件后即可开始对话</div>
+    </div>
+  </main>
+</div>
+<script src="/static/app.js"></script>
+</body>
+</html>
