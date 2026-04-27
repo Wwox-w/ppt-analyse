@@ -180,6 +180,10 @@ body{
 .message .msg-bubble h1,.message .msg-bubble h2,.message .msg-bubble h3{margin:14px 0 8px}
 .message .msg-bubble hr{border:none;border-top:1px solid rgba(255,255,255,0.08);margin:14px 0}
 .message .msg-bubble blockquote{border-left:3px solid var(--accent);padding-left:14px;color:var(--text-secondary);margin:8px 0;background:rgba(108,92,231,0.05);border-radius:0 8px 8px 0;padding:8px 14px}
+.message{position:relative}
+.message:hover .msg-delete-btn{opacity:1}
+.msg-delete-btn{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.1);color:var(--text-muted);cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;opacity:0;transition:all 0.2s;backdrop-filter:blur(8px);z-index:5}
+.msg-delete-btn:hover{background:rgba(253,121,168,0.2);border-color:rgba(253,121,168,0.3);color:#fd79a8;transform:scale(1.1)}
 
 /* 打字指示器 */
 .typing-indicator{display:none;align-self:flex-start;padding:14px 20px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius);border-top-left-radius:4px;gap:5px}

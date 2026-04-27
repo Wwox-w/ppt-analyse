@@ -35,6 +35,15 @@ from src.parser.pdf_parser import ParserFactory
 from src.analyzer.llm_client import LLMClient
 from src.analyzer.summarizer import Summarizer
 from src.analyzer.quiz import QuizGenerator
+from src.analyzer.socratic_tutor import (
+    SOCRATIC_SYSTEM_PROMPT,
+    build_overview_prompt,
+    build_slide_explanation_prompt,
+    build_finish_prompt,
+    build_qa_prompt,
+    build_notes_prompt,
+    build_quiz_prompt,
+)
 from src.models.schemas import ParsedPPT, SlideContent
 
 
@@ -136,47 +145,27 @@ class LearningAgent:
         )
     
     def _generate_overview(self) -> str:
-        """生成课程概览（调用 LLM）"""
+        """生成课程概览（调用 LLM，苏格拉底式教学）"""
         # 提取每页标题
         slide_titles = []
         for s in self.ppt.slides:
             title = s.title or f"第 {s.slide_number} 页"
             slide_titles.append(f"  第 {s.slide_number} 页: {title}")
         
-        titles_text = "\n".join(slide_titles)
-        
-        # 取前几页和后几页的内容作为概览参考
+        # 取前几页的内容作为概览参考
         sample_text = ""
         for s in self.ppt.slides[:3]:
             sample_text += f"\n第{s.slide_number}页: {s.title}\n{s.content[:300]}"
         
-        prompt = f"""你是一个耐心的大学课程辅导老师。学生刚刚上传了一份 PPT 课件，请帮他生成一个课程概览。
-
-PPT 文件名: {self.ppt.filename}
-总页数: {self.ppt.total_slides} 页
-
-各页标题:
-{titles_text}
-
-前几页内容预览:
-{sample_text}
-
-请生成课程概览，包含：
-1. 📖 **课程简介** — 这门课大概讲什么（2-3句话）
-2. 🎯 **学习目标** — 学完这门课能掌握什么（3-5点）
-3. 📋 **内容结构** — 按章节/页数划分的内容结构
-4. 💡 **学习建议** — 怎么学效果最好
-
-要求：
-- 用{'中文' if self.language == 'zh' else '英文'}回答
-- 语气亲切、鼓励，像学长/学姐在分享经验
-- 不要一次性讲太多细节，先给个整体印象
-- 最后告诉学生：可以一页一页跟着学，也可以直接提问"""
-        
-        return self.llm.chat(
-            "你是一个亲切耐心的大学课程辅导老师，帮助学生一步步学习 PPT 课件内容。",
-            prompt,
+        system_prompt, user_prompt = build_overview_prompt(
+            filename=self.ppt.filename,
+            total_slides=self.ppt.total_slides,
+            slide_titles=slide_titles,
+            sample_text=sample_text,
+            language=self.language,
         )
+        
+        return self.llm.chat(system_prompt, user_prompt)
     
     # ================================================================
     # 2. 逐页学习
@@ -279,7 +268,7 @@ PPT 文件名: {self.ppt.filename}
         )
     
     def _explain_slide(self, slide: SlideContent) -> str:
-        """用 LLM 讲解一页幻灯片"""
+        """用 LLM 讲解一页幻灯片（苏格拉底式教学）"""
         # 构建上下文：前几页的内容
         context_pages = []
         start = max(0, self.current_slide_index - 2)
@@ -287,70 +276,31 @@ PPT 文件名: {self.ppt.filename}
             s = self.ppt.slides[i]
             context_pages.append(f"第{s.slide_number}页: {s.title}\n{s.content[:200]}")
         
-        context = "\n\n".join(context_pages) if context_pages else "（这是第一页）"
+        context = "\n\n".join(context_pages) if context_pages else ""
         
-        # 当前页内容
-        current_content = f"标题: {slide.title or '（无标题）'}\n正文: {slide.content}"
-        if slide.notes:
-            current_content += f"\n备注: {slide.notes}"
-        if slide.has_tables:
-            current_content += "\n[此页包含表格]"
-        if slide.has_images:
-            current_content += "\n[此页包含图片]"
-        
-        prompt = f"""你是一个耐心的大学课程辅导老师，正在带着学生一页一页地学习 PPT 课件。
-
-当前进度：第 {slide.slide_number} 页 / 共 {self.ppt.total_slides} 页
-
-前面几页的内容：
-{context}
-
-当前页内容：
-{current_content}
-
-请用{'中文' if self.language == 'zh' else '英文'}讲解这一页，要求：
-1. **通俗易懂** — 用生活中的例子解释复杂概念
-2. **重点突出** — 告诉学生这一页最重要的是什么
-3. **承上启下** — 联系前面讲过的内容，预告后面要学什么
-4. **互动引导** — 讲完后问学生一个思考题，或者鼓励学生提问
-5. **语气亲切** — 像学长/学姐在耐心讲解
-
-格式：
-📌 **重点**
-  （这一页的核心内容，2-3句话）
-
-💡 **讲解**
-  （详细的讲解，用例子帮助理解）
-
-🤔 **想一想**
-  （一个思考题，帮助学生巩固）"""
-        
-        return self.llm.chat(
-            "你是一个亲切耐心的大学课程辅导老师，用通俗易懂的方式讲解 PPT 内容。",
-            prompt,
+        system_prompt, user_prompt = build_slide_explanation_prompt(
+            slide_number=slide.slide_number,
+            total_slides=self.ppt.total_slides,
+            slide_title=slide.title or "",
+            slide_content=slide.content,
+            slide_notes=slide.notes or "",
+            has_tables=slide.has_tables,
+            has_images=slide.has_images,
+            context_before=context,
+            language=self.language,
         )
+        
+        return self.llm.chat(system_prompt, user_prompt)
     
     def _finish_learning(self) -> LearningStep:
-        """所有页学完，进入总结阶段"""
-        prompt = f"""学生刚刚学完了整个 PPT 课件（共 {self.ppt.total_slides} 页）。
-
-PPT 文件名: {self.ppt.filename}
-
-请生成一个学习完成祝贺，包含：
-1. 🎉 **完成祝贺** — 鼓励学生完成了全部学习
-2. 📊 **学习回顾** — 简要回顾学过的核心内容
-3. 🎯 **接下来可以做什么**：
-   - 生成课程笔记（保存重点）
-   - 做练习题（检验学习效果）
-   - 继续提问（深入理解）
-   - 导出 PDF 报告（保存学习成果）
-
-语气要亲切、鼓励！"""
-        
-        content = self.llm.chat(
-            "你是一个亲切耐心的大学课程辅导老师。",
-            prompt,
+        """所有页学完，进入总结阶段（苏格拉底式教学）"""
+        system_prompt, user_prompt = build_finish_prompt(
+            filename=self.ppt.filename,
+            total_slides=self.ppt.total_slides,
+            language=self.language,
         )
+        
+        content = self.llm.chat(system_prompt, user_prompt)
         
         return LearningStep(
             step_type="done",
@@ -371,7 +321,7 @@ PPT 文件名: {self.ppt.filename}
     # ================================================================
     
     def ask(self, question: str) -> LearningStep:
-        """基于 PPT 内容回答问题"""
+        """基于 PPT 内容回答问题（苏格拉底式教学）"""
         if not self.ppt:
             return LearningStep(step_type="error", title="还没开始学习", content="请先上传 PPT")
         
@@ -384,30 +334,17 @@ PPT 文件名: {self.ppt.filename}
             role = "学生" if msg["role"] == "user" else "老师"
             history_text += f"\n{role}: {msg['content']}"
         
-        prompt = f"""你是一个耐心的大学课程辅导老师，正在帮助学生理解 PPT 课件内容。
-
-PPT 文件名: {self.ppt.filename}
-总页数: {self.ppt.total_slides} 页
-当前学习到第 {self.current_slide_index + 1} 页
-
-PPT 全文内容（用于参考）:
-{context}
-
-最近的对话历史:
-{history_text}
-
-学生的问题: {question}
-
-请用{'中文' if self.language == 'zh' else '英文'}回答，要求：
-1. **基于 PPT 内容**回答，如果 PPT 中没有相关信息，请说明并补充你的知识
-2. **通俗易懂**，用例子帮助理解
-3. **如果合适**，可以反问学生一个问题来引导思考
-4. 回答最后可以问学生："还想了解什么吗？" """
-        
-        answer = self.llm.chat(
-            "你是一个亲切耐心的大学课程辅导老师，帮助学生理解 PPT 内容。",
-            prompt,
+        system_prompt, user_prompt = build_qa_prompt(
+            question=question,
+            filename=self.ppt.filename,
+            total_slides=self.ppt.total_slides,
+            current_slide=self.current_slide_index + 1,
+            context=context,
+            history=history_text,
+            language=self.language,
         )
+        
+        answer = self.llm.chat(system_prompt, user_prompt)
         
         # 记录问答历史
         self.qa_history.append({"role": "user", "content": question})

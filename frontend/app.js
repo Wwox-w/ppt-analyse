@@ -1,7 +1,57 @@
 const API_BASE = 'http://localhost:8000';
+const STORAGE_KEY = 'ppt_analyse_chat_history';
 const S = {filepath:null,filename:null,isLearning:false,isCompleted:false,totalSlides:0,currentSlide:0,progress:0,isProcessing:false};
 const $ = id => document.getElementById(id);
 const uploadArea=$('uploadArea'),fileInput=$('fileInput'),fileInfo=$('fileInfo'),fileName=$('fileName'),fileStatus=$('fileStatus'),removeFile=$('removeFile'),controls=$('controls'),progressFill=$('progressFill'),progressText=$('progressText'),prevBtn=$('prevBtn'),nextBtn=$('nextBtn'),quickActions=$('quickActions'),notesBtn=$('notesBtn'),quizBtn=$('quizBtn'),exportBtn=$('exportBtn'),messages=$('messages'),welcomeMessage=$('welcomeMessage'),typingIndicator=$('typingIndicator'),chatInput=$('chatInput'),sendBtn=$('sendBtn'),inputHint=$('inputHint'),headerStatus=$('headerStatus'),clearBtn=$('clearBtn'),menuBtn=$('menuBtn'),sidebar=$('sidebar');
+
+// ===== 历史记录管理 =====
+function saveHistory(){
+  const msgs=[];
+  document.querySelectorAll('.message').forEach(el=>{
+    const role=el.classList.contains('bot')?'bot':'user';
+    const titleEl=el.querySelector('.msg-title');
+    const bubbleEl=el.querySelector('.msg-bubble');
+    msgs.push({role,title:titleEl?titleEl.textContent:'',html:bubbleEl?bubbleEl.innerHTML:''});
+  });
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(msgs));
+}
+function loadHistory(){
+  const data=localStorage.getItem(STORAGE_KEY);
+  if(!data)return;
+  try{
+    const msgs=JSON.parse(data);
+    if(!msgs.length)return;
+    welcomeMessage.style.display='none';
+    msgs.forEach(m=>{
+      const d=document.createElement('div');d.className='message '+m.role;
+      if(m.role==='bot'){
+        d.innerHTML='<div class="msg-avatar"><img src="/static/images/2.png" alt="" class="msg-avatar-img"></div><div class="msg-bubble">'+(m.title?'<div class="msg-title" style="font-weight:600;margin-bottom:8px;background:var(--gradient-1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:15px;">'+esc(m.title)+'</div>':'')+m.html+'</div>';
+      }else{
+        d.innerHTML='<div class="msg-avatar">👤</div><div class="msg-bubble">'+m.html+'</div>';
+      }
+      // 添加删除按钮
+      addDeleteBtn(d);
+      messages.insertBefore(d,typingIndicator);
+    });
+    scroll();
+  }catch(e){console.warn('历史记录加载失败',e)}
+}
+function addDeleteBtn(el){
+  const btn=document.createElement('button');
+  btn.className='msg-delete-btn';
+  btn.innerHTML='✕';
+  btn.title='删除这条消息';
+  btn.addEventListener('click',e=>{
+    e.stopPropagation();
+    el.remove();
+    saveHistory();
+    // 如果没有消息了，显示欢迎页
+    if(!document.querySelectorAll('.message').length){
+      welcomeMessage.style.display='flex';
+    }
+  });
+  el.appendChild(btn);
+}
 
 function esc(t){return t.replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>')}
 function md(t){
@@ -26,15 +76,23 @@ function md(t){
 function addBot(c,t){
   welcomeMessage.style.display='none';
   const d=document.createElement('div');d.className='message bot';
-  let th=t?'<div style="font-weight:600;margin-bottom:8px;background:var(--gradient-1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:15px;">'+esc(t)+'</div>':'';
+  let th=t?'<div class="msg-title" style="font-weight:600;margin-bottom:8px;background:var(--gradient-1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:15px;">'+esc(t)+'</div>':'';
   d.innerHTML='<div class="msg-avatar"><img src="/static/images/2.png" alt="" class="msg-avatar-img"></div><div class="msg-bubble">'+th+md(c)+'</div>';
-  messages.insertBefore(d,typingIndicator);scroll();return d;
+  addDeleteBtn(d);
+  messages.insertBefore(d,typingIndicator);
+  scroll();
+  saveHistory();
+  return d;
 }
 function addUser(c){
   welcomeMessage.style.display='none';
   const d=document.createElement('div');d.className='message user';
   d.innerHTML='<div class="msg-avatar">👤</div><div class="msg-bubble">'+esc(c)+'</div>';
-  messages.insertBefore(d,typingIndicator);scroll();return d;
+  addDeleteBtn(d);
+  messages.insertBefore(d,typingIndicator);
+  scroll();
+  saveHistory();
+  return d;
 }
 function scroll(){setTimeout(()=>messages.scrollTop=messages.scrollHeight,50)}
 function showTyping(){typingIndicator.classList.add('active');scroll()}
@@ -156,6 +214,7 @@ function clearChat(){
   const b=messages.querySelectorAll('.message');b.forEach(m=>m.remove());
   welcomeMessage.style.display='flex';
   headerStatus.innerHTML=S.filepath?'📖 已加载 <span class="highlight">'+S.filename+'</span>，继续学习':'上传课件开始上课 <span class="highlight">📤</span>';
+  localStorage.removeItem(STORAGE_KEY);
 }
 
 // 事件绑定
@@ -175,5 +234,8 @@ menuBtn.addEventListener('click',()=>sidebar.classList.toggle('mobile-show'));
 chatInput.addEventListener('input',()=>{chatInput.style.height='auto';chatInput.style.height=Math.min(chatInput.scrollHeight,120)+'px'});
 chatInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();if(!sendBtn.disabled)askQuestion(chatInput.value)}});
 sendBtn.addEventListener('click',()=>askQuestion(chatInput.value));
+
+// 页面加载时恢复历史记录
+loadHistory();
 
 console.log('🎓 AI 教授已就绪！上传 PPT 开始上课吧！');

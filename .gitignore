@@ -21,3 +21,8 @@ Thumbs.db
 # Test
 .pytest_cache/
 coverage/
+
+# Uploads & Generated files
+uploads/
+project/
+
